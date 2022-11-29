@@ -9,6 +9,7 @@ homepage = "https://github.com/arichtman/junit-ci"
 repository = "https://github.com/arichtman/junit-ci"
 keywords = [ "cli", "junit", "ci", "xml", "report" ]
 categories = [ "command-line-utilities", "text-processing", "development-tools" ]
+rust-version = "1.67.0"
 
 [dependencies]
 log = "0.4.17"
@@ -17,8 +18,11 @@ junit-parser = "0.2.0"
 
 [dependencies.clap]
 version = "4.0.*"
-features = ["derive"]
+features = ["derive", "env" ]
 
 [dev-dependencies]
 rusty-hook = "0.11.2"
 
+[[bin]]
+name = "junitci"
+path = "src/main.rs"
