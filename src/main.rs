@@ -20,9 +20,6 @@ struct Cli {
     /// jUnit input files. May be specified multiple times.
     #[arg(short, long, action = clap::ArgAction::Append)]
     input_files: Vec<PathBuf>,
-    // Disabled test threshold
-    #[arg(short, long, default_value_t = 0)]
-    disabled: u64,
     // Skipped test threshold
     #[arg(short, long, default_value_t = 0)]
     skipped: u64,
@@ -35,7 +32,6 @@ struct Cli {
 }
 
 pub struct Sensitivity {
-    disabled: u64,
     skipped: u64,
     errored: u64,
     failed: u64,
@@ -52,22 +48,22 @@ fn main() {
     simple_logger::init_with_level(log_level).expect("Error initialising logging, aborting.");
 
     debug!("{:#?}", cli);
-    let _ = junit_ci(
+    let exit_code = junit_ci(
         cli.input_files,
         Sensitivity {
-            disabled: cli.disabled,
             skipped: cli.skipped,
             errored: cli.errored,
-            failed: cli.errored,
+            failed: cli.failed,
         },
     );
+    std::process::exit(exit_code);
 }
 
 use junit_parser::{from_reader, TestSuites};
 use std::io::Cursor;
 
 // Reference: https://github.com/tobni/merge-junit
-pub fn junit_ci(input_file_paths: Vec<PathBuf>, sensitivity: Sensitivity) -> u8 {
+pub fn junit_ci(input_file_paths: Vec<PathBuf>, sensitivity: Sensitivity) -> i32 {
     let mut test_suites: Vec<TestSuites> = vec![];
     for file_path in input_file_paths {
         let file_contents = match fs::read_to_string(&file_path) {
@@ -85,10 +81,45 @@ pub fn junit_ci(input_file_paths: Vec<PathBuf>, sensitivity: Sensitivity) -> u8 
                 .expect("Unable to parse test suites from file contents"),
         )
     }
-    let mut return_code = 0;
-    // TODO: Consider an iterator
+    let mut total_skipped: u64 = 0;
+    let mut total_errored: u64 = 0;
+    let mut total_failed: u64 = 0;
+    // TODO: Consider this approach.
     for test_suite in test_suites {
-        todo!();
+        total_skipped += test_suite.skipped;
+        total_errored += test_suite.errors;
+        total_failed += test_suite.failures;
+        debug!("{:?}", test_suite);
+        info!(
+            "Skipped: {}, Errored: {}, Failed: {}",
+            total_skipped, total_errored, total_failed
+        );
+    }
+    let mut return_code = 0;
+    // TODO: Consider matching?
+    // match (test_suite.skipped, test_suite.errors, test_suite.failures) {
+    //     ( x > Sensitivity.skipped, _, _) => None
+    // }
+    if total_skipped > sensitivity.skipped {
+        return_code += 1;
+        info!(
+            "Total skipped {} greater than threshold {}",
+            total_skipped, sensitivity.skipped
+        )
+    }
+    if total_errored > sensitivity.errored {
+        return_code += 1;
+        info!(
+            "Total errored {} greater than threshold {}",
+            total_errored, sensitivity.errored
+        )
+    }
+    if total_failed > sensitivity.failed {
+        return_code += 1;
+        info!(
+            "Total failed {} greater than threshold {}",
+            total_failed, sensitivity.failed
+        )
     }
     return_code
 }

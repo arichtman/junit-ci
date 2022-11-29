@@ -1,10 +1,3 @@
-
-> llg.cubic.org > docs > junit
-JUnit XML reporting file format for Jenkins
-The JUnit testing framework has introduced a XML file format to report about the test suite execution. These XML files can be processed by programs like Jenkins with the JUnit plugin to display results of the tests. However there doesn't seem to exist a good description of the XML file format if you want to produce such files with your own program. This webpage provides a sample XML file which describes all valid elements and attributes as used by the Jenkins JUnit Plugin. It can also serve as a template for other programs that process JUnit style XML files like the Maven Surefire Plugin.
-If you have additional information on these file formats, contact Dirk Jagdmann via email to <doj@cubic.org>. The files shown on this page are licensed with CC0 1.0 Universal (CC0 1.0) Public Domain Dedication.
-
-sample JUnit XML file for Jenkins
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- a description of the JUnit XML format and how Jenkins parses it. See also junit.xsd -->
 
