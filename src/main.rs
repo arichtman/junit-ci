@@ -10,16 +10,6 @@ use std::path::PathBuf;
 
 use log::{debug, error, info, warn};
 
-use int_enum::*;
-
-#[repr(u8)]
-#[derive(Debug, Copy, Clone, IntEnum)]
-pub enum SensitivityLevel {
-    Insensitive = 0,
-    Sensitive = 1,
-    SuperSensitive = 2,
-}
-
 // https://docs.rs/clap/latest/clap/_derive/_tutorial/index.html
 #[derive(Parser, Debug)]
 #[command(name = "junit-ci", author, version, about, long_about = None)] // Read from `Cargo.toml`
@@ -27,8 +17,6 @@ struct Cli {
     /// Increments logging verbosity. May be applied multiple times.
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
-    /// Sensitivity level to fail on
-    sensitivity: u8,
     /// jUnit input files. May be specified multiple times.
     #[arg(short, long, action = clap::ArgAction::Append)]
     input_files: Vec<PathBuf>,
@@ -46,6 +34,13 @@ struct Cli {
     failed: u64,
 }
 
+pub struct Sensitivity {
+    disabled: u64,
+    skipped: u64,
+    errored: u64,
+    failed: u64,
+}
+
 fn main() {
     let cli = Cli::parse();
     let log_level = match cli.verbose {
@@ -59,11 +54,21 @@ fn main() {
     debug!("{:#?}", cli);
     let _ = junit_ci(
         cli.input_files,
-        SensitivityLevel::from_int(cli.sensitivity).expect("Couldn't convert sensitivity level"),
+        Sensitivity {
+            disabled: cli.disabled,
+            skipped: cli.skipped,
+            errored: cli.errored,
+            failed: cli.errored,
+        },
     );
 }
 
-pub fn junit_ci(input_file_paths: Vec<PathBuf>, sensitivity: SensitivityLevel) -> u8 {
+use junit_parser::{from_reader, TestSuites};
+use std::io::Cursor;
+
+// Reference: https://github.com/tobni/merge-junit
+pub fn junit_ci(input_file_paths: Vec<PathBuf>, sensitivity: Sensitivity) -> u8 {
+    let mut test_suites: Vec<TestSuites> = vec![];
     for file_path in input_file_paths {
         let file_contents = match fs::read_to_string(&file_path) {
             Ok(fc) => fc,
@@ -73,6 +78,17 @@ pub fn junit_ci(input_file_paths: Vec<PathBuf>, sensitivity: SensitivityLevel) -
                 continue;
             }
         };
+        let cursor = Cursor::new(file_contents);
+        // TODO: Consider our error handling approach, above we deal with it more explicitly and granularly
+        test_suites.push(
+            junit_parser::from_reader(cursor)
+                .expect("Unable to parse test suites from file contents"),
+        )
     }
-    8
+    let mut return_code = 0;
+    // TODO: Consider an iterator
+    for test_suite in test_suites {
+        todo!();
+    }
+    return_code
 }
