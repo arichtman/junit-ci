@@ -11,6 +11,7 @@ use std::path::PathBuf;
 use log::{debug, error, info, warn};
 
 // https://docs.rs/clap/latest/clap/_derive/_tutorial/index.html
+// TODO: Investigate why env doesn't seem to be applying to our arguments
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None, arg_required_else_help(true))] // Read from `Cargo.toml`
 struct Cli {
@@ -20,9 +21,8 @@ struct Cli {
     /// jUnit input files. May be specified multiple times.
     #[arg(short, long, action = clap::ArgAction::Append)]
     input_files: Vec<PathBuf>,
-    // TODO: Look at Options that default to u64 max
-    // I'm not sure that setting failure threshold 0 on unspecified conditions
-    //  is a good default
+    // TODO: Consider Options that default to u64 max
+    // I'm not sure that setting failure threshold 0 on unspecified conditions is a good default
     /// Skipped test threshold
     #[arg(short, long, default_value_t = 0)]
     skipped: u64,
