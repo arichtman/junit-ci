@@ -106,7 +106,7 @@ pub fn junit_ci(input_file_paths: Vec<PathBuf>) -> ParsedResult {
         let file_contents = match fs::read_to_string(&file_path) {
             Ok(fc) => fc,
             Err(err) => {
-                warn!("Unable to read file {}, Skipping.", file_path.display());
+                error!("Unable to read file {}, Skipping.", file_path.display());
                 debug!("{}", err);
                 continue;
             }
@@ -130,21 +130,49 @@ pub fn junit_ci(input_file_paths: Vec<PathBuf>) -> ParsedResult {
         // Iterate the subsuites as top-level node is optional
         for test_suite in test_suite.suites {
             info!("Processing: {}", test_suite.name);
+            if test_suite.tests == 0 {
+                warn!("No tests in this test suite, proceeding.");
+                continue;
+            }
+            debug!(
+                "{} tests in {}. {} skipped, {} errored, {} failed.",
+                test_suite.tests,
+                test_suite.time,
+                test_suite.skipped,
+                test_suite.errors,
+                test_suite.failures
+            );
+            trace!("{:?}", test_suite);
             total_skipped += test_suite.skipped;
             total_errored += test_suite.errors;
             total_failed += test_suite.failures;
-            debug!("{:?}", test_suite);
         }
     }
+    debug!(
+        "Totals: skipped: {}, errored: {}, failed: {}",
+        total_skipped, total_errored, total_failed
+    );
     let result = ParsedResult {
         total_skipped,
         total_errored,
         total_failed,
     };
-    debug!("{:?}", result);
+    trace!("{:?}", result);
     result
 }
 
+/*
+TODO: Investigate how to offload display formatting to the struct's traits
+use std::fmt;
+use std::fmt::{Display};
+
+impl Display for junit_parser::TestSuite {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} tests in {}. {} skipped, {} errored, {} failed.",
+        self.tests, self.time, self.skipped, self.errors, self.failures)
+    }
+}
+ */
 // TODO: Rework this extremely hacky XML splitting to handle multi-document files
 fn split_xml_documents(all_docs_string: String, return_vector: &mut Vec<String>) {
     const XML_HEADER: &str = r#"<?xml version="1.0" encoding="UTF-8"?>"#;
@@ -159,7 +187,7 @@ fn split_xml_documents(all_docs_string: String, return_vector: &mut Vec<String>)
         trace!("{}", residual_string);
         trace!("{}", byte_index);
         let split_xml_content = residual_string.split_at(byte_index);
-        debug!("{}", split_xml_content.1);
+        trace!("{}", split_xml_content.1);
         return_vector.push(split_xml_content.1.to_string());
         residual_string = split_xml_content.0.to_string();
     }
