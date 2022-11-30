@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite failures="0" errors="1" skipped="0" tests="1" time="682.398533" name="Test suite 0">
+<testcase classname="dog" name="woof" time="682.398533">
+</testcase>
+</testsuite>
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite failures="0" errors="1" skipped="0" tests="1" time="682.398533" name="Test suite 1">
+<testcase classname="cat" name="meow" time="682.398533">
+</testcase>
+</testsuite>
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites disabled="" errors="" failures="", name="" tests="" time="" >
+<testsuite failures="0" errors="1" skipped="0" tests="1" time="682.398533" name="Test suite 2">
+<testcase classname="birb" name="chirp" time="682.398533">
+</testcase>
+</testsuite>
+<testsuite failures="0" errors="1" skipped="0" tests="1" time="682.398533" name="Test suite 3">
+<testcase classname="pig" name="oink" time="682.398533">
+</testcase>
+</testsuite>
+</testsuites>
