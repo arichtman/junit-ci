@@ -90,6 +90,7 @@ fn main() {
 use std::io::Cursor;
 
 // TODO: Consider the use and relationship of these variables between main and junit_ci
+#[derive(Debug)]
 pub struct ParsedResult {
     total_skipped: u64,
     total_errored: u64,
@@ -132,22 +133,16 @@ pub fn junit_ci(input_file_paths: Vec<PathBuf>) -> ParsedResult {
             total_skipped += test_suite.skipped;
             total_errored += test_suite.errors;
             total_failed += test_suite.failures;
-            info!(
-                "Skipped: {}, Errored: {}, Failed: {}",
-                test_suite.skipped, test_suite.errors, test_suite.failures
-            );
             debug!("{:?}", test_suite);
         }
-        info!(
-            "Totals: skipped: {}, errored: {}, failed: {}",
-            total_skipped, total_errored, total_failed
-        );
     }
-    ParsedResult {
+    let result = ParsedResult {
         total_skipped,
         total_errored,
         total_failed,
-    }
+    };
+    debug!("{:?}", result);
+    result
 }
 
 // TODO: Rework this extremely hacky XML splitting to handle multi-document files
