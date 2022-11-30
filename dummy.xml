@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites disabled="0" errors="1" failures="2" name="foo" tests="5" time="4" skipped="1">
+<testsuites disabled="0" errors="1" failures="2" name="foo" tests="6" time="4" skipped="3">
     <testsuite disabled="0" errors="1" failures="2" hostname="" id="0"
-               name="bar" package="" skipped="1" tests="5" time="4" timestamp="">
+               name="bar" package="" skipped="3" tests="6" time="4" timestamp="">
         <properties>
             <property name="key" value="val"/>
         </properties>

@@ -45,12 +45,7 @@ fn main() {
     simple_logger::init_with_level(log_level).expect("Error initialising logging, aborting.");
 
     debug!("{:#?}", cli);
-    let exit_code = junit_ci(
-        cli.input_files,
-        cli.skipped,
-        cli.errored,
-        cli.failed,
-    );
+    let exit_code = junit_ci(cli.input_files, cli.skipped, cli.errored, cli.failed);
     std::process::exit(exit_code);
 }
 
@@ -59,7 +54,12 @@ use std::io::Cursor;
 
 // Reference: https://github.com/tobni/merge-junit
 // TODO: Consider returning Result type
-pub fn junit_ci(input_file_paths: Vec<PathBuf>, max_skipped: u64, max_errored: u64, max_failed: u64) -> i32 {
+pub fn junit_ci(
+    input_file_paths: Vec<PathBuf>,
+    max_skipped: u64,
+    max_errored: u64,
+    max_failed: u64,
+) -> i32 {
     let mut test_suites: Vec<TestSuites> = vec![];
     for file_path in input_file_paths {
         let file_contents = match fs::read_to_string(&file_path) {
@@ -83,10 +83,13 @@ pub fn junit_ci(input_file_paths: Vec<PathBuf>, max_skipped: u64, max_errored: u
     let mut total_failed: u64 = 0;
     // TODO: Reconsider this approach.
     for test_suite in test_suites {
-        total_skipped += test_suite.skipped;
-        total_errored += test_suite.errors;
-        total_failed += test_suite.failures;
-        debug!("{:?}", test_suite);
+        // Iterate the subsuites as top-level node is optional
+        for test_suite in test_suite.suites {
+            total_skipped += test_suite.skipped;
+            total_errored += test_suite.errors;
+            total_failed += test_suite.failures;
+            debug!("{:?}", test_suite);
+        }
         info!(
             "Skipped: {}, Errored: {}, Failed: {}",
             total_skipped, total_errored, total_failed
