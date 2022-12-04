@@ -35,7 +35,7 @@ struct Cli {
 
 fn main() {
     let cli = Cli::parse();
-    // TODO: See if int-enum package can simplify this? Perhaps that's overkill?
+    // TODO: Is this the idiomatic way to handle it?
     let log_level = match cli.verbose {
         0 => log::Level::Error,
         1 => log::Level::Warn,
@@ -55,62 +55,35 @@ fn main() {
         error!("No input files specified, aborting.");
         std::process::exit(-1);
     }
-    let parsed_result = junit_ci(cli.input_files);
-    let mut exit_array: [u8; 3] = [0; 3];
-    // TODO: Consider matching?
-    // match (total_skipped, total_errored, total_failed) {
-    //     ( x > Sensitivity.skipped, _, _) => None
-    // }
-    if parsed_result.total_skipped > cli.skipped {
-        exit_array[0] = 1 << 0;
-        info!(
-            "Total skipped {} greater than threshold {}",
-            parsed_result.total_skipped, cli.skipped
-        )
+    match junit_ci(cli.input_files, cli.skipped, cli.errored, cli.failed) {
+        Ok(_) => return,
+        Err(exit_code) => std::process::exit(exit_code),
     }
-    if parsed_result.total_errored > cli.errored {
-        exit_array[1] = 1 << 1;
-        info!(
-            "Total errored {} greater than threshold {}",
-            parsed_result.total_errored, cli.errored
-        )
-    }
-    if parsed_result.total_failed > cli.failed {
-        exit_array[2] = 1 << 2;
-        info!(
-            "Total failed {} greater than threshold {}",
-            parsed_result.total_failed, cli.failed
-        )
-    }
-    let exit_code = exit_array.iter().sum::<u8>();
-    std::process::exit(exit_code as i32);
 }
 
-// use junit_parser::{from_reader, TestSuites};
 use std::io::Cursor;
-
-// TODO: Consider the use and relationship of these variables between main and junit_ci
-#[derive(Debug)]
-pub struct ParsedResult {
-    total_skipped: u64,
-    total_errored: u64,
-    total_failed: u64,
-}
 
 use std::fs;
 
-// TODO: Consider returning Result type
-pub fn junit_ci(input_file_paths: Vec<PathBuf>) -> ParsedResult {
+// TODO: Reconsider Result return type. It's logical but would be easier to return the error code directly?
+pub fn junit_ci(
+    input_file_paths: Vec<PathBuf>,
+    skip_threshold: u64,
+    error_threshold: u64,
+    fail_threshold: u64,
+) -> Result<(), i32> {
     let mut test_suites: Vec<junit_parser::TestSuites> = vec![];
+    let mut file_count: u8 = 0;
     for file_path in input_file_paths {
         let file_contents = match fs::read_to_string(&file_path) {
             Ok(fc) => fc,
             Err(err) => {
-                error!("Unable to read file {}, Skipping.", file_path.display());
+                warn!("Unable to read file {}, Skipping.", file_path.display());
                 debug!("{}", err);
                 continue;
             }
         };
+        file_count += 1;
         let mut xml_documents: Vec<String> = vec![];
         split_xml_documents(file_contents, &mut xml_documents);
         for xml_doc in xml_documents {
@@ -122,6 +95,11 @@ pub fn junit_ci(input_file_paths: Vec<PathBuf>) -> ParsedResult {
             )
         }
     }
+    if file_count == 0 {
+        error!("No files read, aborting.");
+        return Err(-3);
+    }
+    let mut total_tests: u64 = 0;
     let mut total_skipped: u64 = 0;
     let mut total_errored: u64 = 0;
     let mut total_failed: u64 = 0;
@@ -143,36 +121,57 @@ pub fn junit_ci(input_file_paths: Vec<PathBuf>) -> ParsedResult {
                 test_suite.failures
             );
             trace!("{:?}", test_suite);
+            total_tests += test_suite.tests;
             total_skipped += test_suite.skipped;
             total_errored += test_suite.errors;
             total_failed += test_suite.failures;
         }
     }
     debug!(
-        "Totals: skipped: {}, errored: {}, failed: {}",
-        total_skipped, total_errored, total_failed
+        "Total {}: skipped: {}, errored: {}, failed: {}.",
+        total_tests, total_skipped, total_errored, total_failed
     );
-    let result = ParsedResult {
-        total_skipped,
-        total_errored,
-        total_failed,
-    };
-    trace!("{:?}", result);
-    result
-}
-
-/*
-TODO: Investigate how to offload display formatting to the struct's traits
-use std::fmt;
-use std::fmt::{Display};
-
-impl Display for junit_parser::TestSuite {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} tests in {}. {} skipped, {} errored, {} failed.",
-        self.tests, self.time, self.skipped, self.errors, self.failures)
+    if total_tests == 0 {
+        error!("No tests found, aborting.");
+        return Err(-2);
+    }
+    let mut exit_code: i32 = 0;
+    // TODO: Consider matching?
+    // match (total_skipped, total_errored, total_failed) {
+    //     ( x > Sensitivity.skipped, _, _) => None
+    // }
+    if total_skipped > skip_threshold {
+        exit_code += 1;
+        info!(
+            "Total skipped {} greater than threshold {}.",
+            total_skipped, skip_threshold
+        )
+    }
+    if total_errored > error_threshold {
+        exit_code += 2;
+        info!(
+            "Total errored {} greater than threshold {}.",
+            total_errored, error_threshold
+        )
+    }
+    if total_failed > fail_threshold {
+        exit_code += 4;
+        info!(
+            "Total failed {} greater than threshold {}.",
+            total_failed, fail_threshold
+        )
+    }
+    match exit_code {
+        0 => Ok(()),
+        c => {
+            // TODO: Use the logger? But Error should be reserved for actual application errors?
+            //  If we put it as INFO it won't display by default though...
+            println!("Successfully parsed results!");
+            Err(c as i32)
+        }
     }
 }
- */
+
 // TODO: Rework this extremely hacky XML splitting to handle multi-document files
 fn split_xml_documents(all_docs_string: String, return_vector: &mut Vec<String>) {
     const XML_HEADER: &str = r#"<?xml version="1.0" encoding="UTF-8"?>"#;
