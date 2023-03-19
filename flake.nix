@@ -13,7 +13,6 @@
     , flake-utils
     , rust-overlay
     }:
-
     flake-utils.lib.eachDefaultSystem (system:
     let
       overlays = [
@@ -35,6 +34,14 @@
       pkgs = import nixpkgs { inherit system overlays; };
     in
     {
+    # Add an overlay so we can pretend it's a real package
+    overlay = final: prev: {
+      usr = import ./default.nix {
+        usrpkgs = prev;
+        pkgs = prev;
+      };
+    };
+    packages.default = nixpkgs.legacyPackages.${system}.callPackage ./. { };
       devShells.default = pkgs.mkShell {
         packages = with pkgs; [
           rustToolchain
