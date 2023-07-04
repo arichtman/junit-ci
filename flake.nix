@@ -50,6 +50,7 @@
           cargo-deny
           cargo-edit
           cargo-watch
+          cargo-audit
           rust-analyzer
         ];
 

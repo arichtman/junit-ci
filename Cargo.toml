@@ -9,15 +9,15 @@ homepage = "https://github.com/arichtman/junit-ci"
 repository = "https://github.com/arichtman/junit-ci"
 keywords = [ "cli", "junit", "ci", "xml", "report" ]
 categories = [ "command-line-utilities", "text-processing", "development-tools" ]
-rust-version = "1.64.0"
+rust-version = "1.70.0"
 
 [dependencies]
-log = "0.4.17"
-simple_logger = "4.0.0"
+log = "0.4.19"
+simple_logger = "4.2.0"
 junit-parser = "0.2.0"
 
 [dependencies.clap]
-version = "4.0.*"
+version = "4.*"
 features = ["derive", "env" ]
 
 [dev-dependencies]
