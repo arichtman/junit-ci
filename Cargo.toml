@@ -18,7 +18,7 @@ junit-parser = "0.2.0"
 
 [dependencies.clap]
 version = "4.*"
-features = ["derive", "env" ]
+features = ["derive", "env"]
 
 [dev-dependencies]
 rusty-hook = "0.11.2"
